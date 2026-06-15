@@ -1,0 +1,44 @@
+name: 'Clean Cloudflare Pages Deployments'
+description: 'Deletes old Cloudflare Pages deployments based on count or age'
+author: 'pierskarsenbarg'
+
+branding:
+  icon: 'trash-2'
+  color: 'orange'
+
+inputs:
+  api-token:
+    description: 'Cloudflare API token. Falls back to CLOUDFLARE_API_TOKEN environment variable.'
+    required: false
+  account-id:
+    description: 'Cloudflare account ID. Falls back to CLOUDFLARE_ACCOUNT_ID environment variable.'
+    required: false
+  project-name:
+    description: 'Name of the Cloudflare Pages project.'
+    required: true
+  keep-deployments:
+    description: >
+      Number of most recent deployments to keep. Cannot be used with keep-days.
+      Exactly one of keep-deployments or keep-days must be set.
+    required: false
+  keep-days:
+    description: >
+      Delete deployments older than this many days. Cannot be used with keep-deployments.
+      Exactly one of keep-deployments or keep-days must be set.
+    required: false
+  environment:
+    description: 'Which deployments to target: "preview", "production", or "all". Defaults to "preview".'
+    required: false
+    default: 'preview'
+  dry-run:
+    description: 'If "true", log what would be deleted without actually deleting anything.'
+    required: false
+    default: 'false'
+
+outputs:
+  deleted-count:
+    description: 'Number of deployments deleted (0 in dry-run mode).'
+
+runs:
+  using: 'node20'
+  main: 'dist/index.js'

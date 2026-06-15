@@ -1,0 +1,25 @@
+{
+  "name": "cf-clean-deployments",
+  "version": "1.0.0",
+  "description": "GitHub Action to delete old Cloudflare Pages deployments",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "vite build",
+    "test": "vitest run",
+    "lint": "oxlint src __tests__",
+    "format": "oxfmt src __tests__",
+    "format:check": "oxfmt --check src __tests__",
+    "typecheck": "tsc --noEmit -p tsconfig.test.json"
+  },
+  "dependencies": {
+    "@actions/core": "3.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "25.9.3",
+    "oxfmt": "0.55.0",
+    "oxlint": "1.70.0",
+    "typescript": "6.0.3",
+    "vite": "8.0.16",
+    "vitest": "4.1.9"
+  }
+}
