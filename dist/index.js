@@ -16215,18 +16215,20 @@ var CloudflareClient = class {
 };
 //#endregion
 //#region src/cleanup.ts
-function isProtected(deployment) {
-	return deployment.environment === "production" && deployment.latest_stage.status === "success";
+function findActiveProduction(deployments) {
+	return sortedByDateDesc(deployments).find((d) => d.environment === "production" && d.latest_stage.status === "success");
 }
 function sortedByDateDesc(deployments) {
 	return [...deployments].sort((a, b) => new Date(b.created_on).getTime() - new Date(a.created_on).getTime());
 }
 function selectByCount(deployments, keepCount) {
-	return sortedByDateDesc(deployments).slice(keepCount).filter((d) => !isProtected(d));
+	const active = findActiveProduction(deployments);
+	return sortedByDateDesc(deployments).slice(keepCount).filter((d) => d !== active);
 }
 function selectByDays(deployments, keepDays, now = /* @__PURE__ */ new Date()) {
 	const cutoff = /* @__PURE__ */ new Date(now.getTime() - keepDays * 24 * 60 * 60 * 1e3);
-	return deployments.filter((d) => new Date(d.created_on) < cutoff).filter((d) => !isProtected(d));
+	const active = findActiveProduction(deployments);
+	return deployments.filter((d) => new Date(d.created_on) < cutoff).filter((d) => d !== active);
 }
 //#endregion
 //#region src/main.ts
