@@ -1,8 +1,8 @@
 # cf-clean-deployments
 
-A GitHub Action that deletes old [Cloudflare Pages](https://pages.cloudflare.com/) deployments, keeping your project tidy by removing previews based on age or count.
+A GitHub Action that deletes old [Cloudflare Workers](https://workers.cloudflare.com/) and [Cloudflare Pages](https://pages.cloudflare.com/) deployments, keeping your project tidy by removing deployments based on age or count.
 
-> **Note:** Cloudflare's API does not support deleting individual Workers deployments. This action targets Pages projects only.
+> **Note:** `type` defaults to `workers`. Pages users must set `type: pages`. For Workers, the live deployment is never deleted and `environment` is ignored.
 
 ## Usage
 
@@ -11,7 +11,7 @@ A GitHub Action that deletes old [Cloudflare Pages](https://pages.cloudflare.com
   with:
     api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-    project-name: my-pages-project
+    project-name: my-worker
     keep-deployments: 10
 ```
 
@@ -21,10 +21,11 @@ A GitHub Action that deletes old [Cloudflare Pages](https://pages.cloudflare.com
 |-------|----------|---------|-------------|
 | `api-token` | No* | — | Cloudflare API token. Falls back to the `CLOUDFLARE_API_TOKEN` environment variable. |
 | `account-id` | No* | — | Cloudflare account ID. Falls back to the `CLOUDFLARE_ACCOUNT_ID` environment variable. |
-| `project-name` | Yes | — | Name of the Cloudflare Pages project. |
+| `project-name` | Yes | — | Name of the Cloudflare Workers script or Pages project. |
+| `type` | No | `workers` | `workers` or `pages`. |
 | `keep-deployments` | No** | — | Keep this many of the most recent deployments and delete the rest. |
 | `keep-days` | No** | — | Delete deployments older than this many days. |
-| `environment` | No | `preview` | Which deployments to target: `preview`, `production`, or `all`. |
+| `environment` | No | `preview` | Pages only. Which deployments to target: `preview`, `production`, or `all`. |
 | `dry-run` | No | `false` | Log what would be deleted without actually deleting anything. |
 
 \* Either the input or the corresponding environment variable must be set.  
@@ -38,7 +39,7 @@ A GitHub Action that deletes old [Cloudflare Pages](https://pages.cloudflare.com
 
 ## Authentication
 
-Create a Cloudflare API token with the **Cloudflare Pages — Edit** permission, then store it as a secret in your repository. Your account ID can be found on the Cloudflare dashboard overview page.
+Create a Cloudflare API token with the **Workers Scripts — Edit** (Workers) or **Cloudflare Pages — Edit** (Pages) permission, then store it as a secret in your repository. Your account ID can be found on the Cloudflare dashboard overview page.
 
 It is recommended to store both values as repository secrets and pass them via the `api-token` and `account-id` inputs, or set them as environment variables:
 
@@ -68,6 +69,7 @@ jobs:
           api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           project-name: my-pages-project
+          type: pages
           keep-days: 30
 ```
 
@@ -79,6 +81,7 @@ jobs:
     api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     project-name: my-pages-project
+    type: pages
     keep-deployments: 5
 ```
 
@@ -90,6 +93,7 @@ jobs:
     api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     project-name: my-pages-project
+    type: pages
     keep-days: 7
     dry-run: true
 ```
@@ -102,6 +106,7 @@ jobs:
     api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     project-name: my-pages-project
+    type: pages
     keep-deployments: 10
     environment: all
 ```

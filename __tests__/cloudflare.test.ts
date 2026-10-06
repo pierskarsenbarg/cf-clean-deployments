@@ -41,7 +41,7 @@ describe("CloudflareClient.listDeployments", () => {
   let fetchSpy: MockInstance;
 
   beforeEach(() => {
-    client = new CloudflareClient(TOKEN, ACCOUNT_ID);
+    client = new CloudflareClient(TOKEN, ACCOUNT_ID, "pages");
     fetchSpy = vi.spyOn(global, "fetch");
   });
 
@@ -145,7 +145,7 @@ describe("CloudflareClient.deleteDeployment", () => {
   let fetchSpy: MockInstance;
 
   beforeEach(() => {
-    client = new CloudflareClient(TOKEN, ACCOUNT_ID);
+    client = new CloudflareClient(TOKEN, ACCOUNT_ID, "pages");
     fetchSpy = vi.spyOn(global, "fetch");
   });
 
@@ -188,5 +188,87 @@ describe("CloudflareClient.deleteDeployment", () => {
     await expect(client.deleteDeployment(PROJECT, "dep-active")).rejects.toThrow(
       "Cannot delete active deployment",
     );
+  });
+});
+
+describe("CloudflareClient (workers)", () => {
+  let client: CloudflareClient;
+  let fetchSpy: MockInstance;
+
+  beforeEach(() => {
+    client = new CloudflareClient(TOKEN, ACCOUNT_ID, "workers");
+    fetchSpy = vi.spyOn(global, "fetch");
+  });
+
+  function workersResponse(ids: string[], totalPages = 1) {
+    return {
+      ok: true,
+      json: async () => ({
+        success: true,
+        errors: [],
+        result: {
+          deployments: ids.map((id, i) => ({
+            id,
+            created_on: `2024-01-0${9 - i}T00:00:00Z`,
+          })),
+        },
+        result_info: { total_pages: totalPages },
+      }),
+    } as unknown as Response;
+  }
+
+  it("lists from the workers scripts endpoint without an env param", async () => {
+    fetchSpy.mockResolvedValueOnce(workersResponse(["a"]));
+
+    await client.listDeployments("my-worker", "preview");
+
+    const [url] = fetchSpy.mock.calls[0] as [string];
+    expect(url).toContain("/accounts/test-account/workers/scripts/my-worker/deployments");
+    expect(url).not.toContain("env=");
+  });
+
+  it("marks only the first deployment as the live production deployment", async () => {
+    fetchSpy.mockResolvedValueOnce(workersResponse(["a", "b", "c"]));
+
+    const result = await client.listDeployments("my-worker");
+
+    expect(result.map((d) => d.environment)).toEqual(["production", "preview", "preview"]);
+  });
+
+  it("fetches all pages", async () => {
+    fetchSpy
+      .mockResolvedValueOnce(workersResponse(["a", "b"], 2))
+      .mockResolvedValueOnce(workersResponse(["c"], 2));
+
+    const result = await client.listDeployments("my-worker");
+
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(result.map((d) => d.id)).toEqual(["a", "b", "c"]);
+    expect(result.map((d) => d.environment)).toEqual(["production", "preview", "preview"]);
+  });
+
+  it("deletes via the workers endpoint without force", async () => {
+    fetchSpy.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ success: true, errors: [] }),
+    } as unknown as Response);
+
+    await client.deleteDeployment("my-worker", "dep-1");
+
+    const [url, options] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain("/workers/scripts/my-worker/deployments/dep-1");
+    expect(url).not.toContain("force=");
+    expect(options.method).toBe("DELETE");
+  });
+
+  it("includes the API error body in failures", async () => {
+    fetchSpy.mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+      statusText: "Not Found",
+      json: async () => ({ errors: [{ code: 10007, message: "This Worker does not exist" }] }),
+    } as unknown as Response);
+
+    await expect(client.listDeployments("nope")).rejects.toThrow("This Worker does not exist");
   });
 });

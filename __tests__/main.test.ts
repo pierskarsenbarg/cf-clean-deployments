@@ -131,6 +131,38 @@ describe("input validation", () => {
     expect(MockedClient).not.toHaveBeenCalled();
   });
 
+  it("fails on an invalid type", async () => {
+    setupInputs({
+      "api-token": "tok",
+      "account-id": "acc",
+      "project-name": "proj",
+      "keep-deployments": "5",
+      type: "bogus",
+    });
+
+    await run();
+
+    expect(mockedCore.setFailed).toHaveBeenCalledWith(
+      expect.stringContaining('Invalid type "bogus"'),
+    );
+    expect(MockedClient).not.toHaveBeenCalled();
+  });
+
+  it("passes type pages to the client", async () => {
+    setupInputs({
+      "api-token": "tok",
+      "account-id": "acc",
+      "project-name": "proj",
+      "keep-deployments": "5",
+      type: "pages",
+    });
+    setupClient([]);
+
+    await run();
+
+    expect(MockedClient).toHaveBeenCalledWith("tok", "acc", "pages");
+  });
+
   it("falls back to CLOUDFLARE_API_TOKEN env var", async () => {
     process.env["CLOUDFLARE_API_TOKEN"] = "env-token";
     setupInputs({
@@ -146,7 +178,7 @@ describe("input validation", () => {
 
     await run();
 
-    expect(MockedClient).toHaveBeenCalledWith("env-token", "acc");
+    expect(MockedClient).toHaveBeenCalledWith("env-token", "acc", "workers");
   });
 
   it("falls back to CLOUDFLARE_ACCOUNT_ID env var", async () => {
@@ -164,7 +196,7 @@ describe("input validation", () => {
 
     await run();
 
-    expect(MockedClient).toHaveBeenCalledWith("tok", "env-account");
+    expect(MockedClient).toHaveBeenCalledWith("tok", "env-account", "workers");
   });
 
   it("fails when environment input is invalid", async () => {
