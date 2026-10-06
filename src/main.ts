@@ -8,6 +8,7 @@ export async function run(): Promise<void> {
   const projectName = core.getInput("project-name", { required: true });
   const keepDeploymentsInput = core.getInput("keep-deployments");
   const keepDaysInput = core.getInput("keep-days");
+  const typeInput = core.getInput("type") || "workers";
   const environmentInput = core.getInput("environment") || "preview";
   const dryRun = core.getInput("dry-run") === "true";
 
@@ -36,6 +37,11 @@ export async function run(): Promise<void> {
     return;
   }
 
+  if (typeInput !== "workers" && typeInput !== "pages") {
+    core.setFailed(`Invalid type "${typeInput}". Must be one of: workers, pages.`);
+    return;
+  }
+
   const validEnvironments = ["preview", "production", "all"];
   if (!validEnvironments.includes(environmentInput)) {
     core.setFailed(
@@ -44,9 +50,9 @@ export async function run(): Promise<void> {
     return;
   }
 
-  const client = new CloudflareClient(apiToken, accountId);
+  const client = new CloudflareClient(apiToken, accountId, typeInput);
 
-  core.info(`Fetching deployments for project "${projectName}"...`);
+  core.info(`Fetching deployments for ${typeInput} project "${projectName}"...`);
 
   const environment =
     environmentInput === "all" ? undefined : (environmentInput as "production" | "preview");
@@ -86,7 +92,7 @@ export async function run(): Promise<void> {
   if (dryRun) {
     core.info("[dry-run] The following deployments would be deleted:");
     for (const d of toDelete) {
-      core.info(`  [dry-run] ${d.id} (created ${d.created_on}) ${d.url}`);
+      core.info(`  [dry-run] ${d.id} (created ${d.created_on})${d.url ? ` ${d.url}` : ""}`);
     }
     core.setOutput("deleted-count", "0");
     return;

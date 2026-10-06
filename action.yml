@@ -1,5 +1,5 @@
-name: 'Clean Cloudflare Pages Deployments'
-description: 'Deletes old Cloudflare Pages deployments based on count or age'
+name: 'Clean Cloudflare Deployments'
+description: 'Deletes old Cloudflare Workers or Pages deployments based on count or age'
 author: 'pierskarsenbarg'
 
 branding:
@@ -14,8 +14,12 @@ inputs:
     description: 'Cloudflare account ID. Falls back to CLOUDFLARE_ACCOUNT_ID environment variable.'
     required: false
   project-name:
-    description: 'Name of the Cloudflare Pages project.'
+    description: 'Name of the Cloudflare Workers script or Pages project.'
     required: true
+  type:
+    description: 'Type of project: "workers" or "pages". Defaults to "workers".'
+    required: false
+    default: 'workers'
   keep-deployments:
     description: >
       Number of most recent deployments to keep. Cannot be used with keep-days.
@@ -27,7 +31,7 @@ inputs:
       Exactly one of keep-deployments or keep-days must be set.
     required: false
   environment:
-    description: 'Which deployments to target: "preview", "production", or "all". Defaults to "preview".'
+    description: 'Pages only (ignored for Workers). Which deployments to target: "preview", "production", or "all". Defaults to "preview".'
     required: false
     default: 'preview'
   dry-run:
