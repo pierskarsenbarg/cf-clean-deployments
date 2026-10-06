@@ -1,7 +1,11 @@
 import { CloudflareDeployment } from "./cloudflare";
 
-function isProtected(deployment: CloudflareDeployment): boolean {
-  return deployment.environment === "production" && deployment.latest_stage.status === "success";
+function findActiveProduction(
+  deployments: CloudflareDeployment[],
+): CloudflareDeployment | undefined {
+  return sortedByDateDesc(deployments).find(
+    (d) => d.environment === "production" && d.latest_stage.status === "success",
+  );
 }
 
 function sortedByDateDesc(deployments: CloudflareDeployment[]): CloudflareDeployment[] {
@@ -14,8 +18,10 @@ export function selectByCount(
   deployments: CloudflareDeployment[],
   keepCount: number,
 ): CloudflareDeployment[] {
-  const sorted = sortedByDateDesc(deployments);
-  return sorted.slice(keepCount).filter((d) => !isProtected(d));
+  const active = findActiveProduction(deployments);
+  return sortedByDateDesc(deployments)
+    .slice(keepCount)
+    .filter((d) => d !== active);
 }
 
 export function selectByDays(
@@ -24,5 +30,6 @@ export function selectByDays(
   now: Date = new Date(),
 ): CloudflareDeployment[] {
   const cutoff = new Date(now.getTime() - keepDays * 24 * 60 * 60 * 1000);
-  return deployments.filter((d) => new Date(d.created_on) < cutoff).filter((d) => !isProtected(d));
+  const active = findActiveProduction(deployments);
+  return deployments.filter((d) => new Date(d.created_on) < cutoff).filter((d) => d !== active);
 }

@@ -111,7 +111,7 @@ jobs:
     environment: all
 ```
 
-> **Note:** Active production deployments are never deleted, even when `environment` is set to `production` or `all`.
+> **Note:** The active (latest successful) production deployment is never deleted; older production deployments are deleted, even when `environment` is set to `production` or `all`.
 
 ## License
 

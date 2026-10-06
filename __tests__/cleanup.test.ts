@@ -61,18 +61,34 @@ describe("selectByCount", () => {
     expect(toDelete).toHaveLength(2);
   });
 
-  it("excludes protected production deployments from deletion", () => {
+  it("keeps the active production deployment even when it is in the tail", () => {
     const deps = [
       makeDeployment("preview-1", "2024-01-03T00:00:00Z"),
       makeDeployment("preview-2", "2024-01-02T00:00:00Z"),
-      makeDeployment("prod-1", "2024-01-01T00:00:00Z", {
-        environment: "production",
-        latest_stage: { status: "success", name: "deploy" },
-      }),
+      makeDeployment("prod-1", "2024-01-01T00:00:00Z", { environment: "production" }),
     ];
     const toDelete = selectByCount(deps, 1);
-    // prod-1 would be in the tail but is protected
     expect(toDelete.map((d) => d.id)).toEqual(["preview-2"]);
+  });
+
+  it("deletes older successful production deployments but keeps the newest", () => {
+    const deps = [
+      makeDeployment("prod-new", "2024-01-03T00:00:00Z", { environment: "production" }),
+      makeDeployment("prod-mid", "2024-01-02T00:00:00Z", { environment: "production" }),
+      makeDeployment("prod-old", "2024-01-01T00:00:00Z", { environment: "production" }),
+    ];
+    expect(selectByCount(deps, 0).map((d) => d.id)).toEqual(["prod-mid", "prod-old"]);
+  });
+
+  it("deletes failed production deployments", () => {
+    const deps = [
+      makeDeployment("prod-ok", "2024-01-02T00:00:00Z", { environment: "production" }),
+      makeDeployment("prod-failed", "2024-01-03T00:00:00Z", {
+        environment: "production",
+        latest_stage: { status: "failure", name: "deploy" },
+      }),
+    ];
+    expect(selectByCount(deps, 0).map((d) => d.id)).toEqual(["prod-failed"]);
   });
 
   it("does not modify the original array", () => {
@@ -123,16 +139,14 @@ describe("selectByDays", () => {
     expect(toDelete.map((d) => d.id)).toEqual(["just-before"]);
   });
 
-  it("excludes protected production deployments", () => {
+  it("keeps the active production deployment but deletes older production ones", () => {
     const deps = [
       makeDeployment("preview-old", "2024-05-01T00:00:00Z"),
-      makeDeployment("prod-old", "2024-05-01T00:00:00Z", {
-        environment: "production",
-        latest_stage: { status: "success", name: "deploy" },
-      }),
+      makeDeployment("prod-active", "2024-05-02T00:00:00Z", { environment: "production" }),
+      makeDeployment("prod-older", "2024-05-01T00:00:00Z", { environment: "production" }),
     ];
     const toDelete = selectByDays(deps, 7, now);
-    expect(toDelete.map((d) => d.id)).toEqual(["preview-old"]);
+    expect(toDelete.map((d) => d.id)).toEqual(["preview-old", "prod-older"]);
   });
 
   it("uses current time when now is not provided", () => {
